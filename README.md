@@ -6,6 +6,12 @@ Accessible Vue 3 form fields with framework-neutral error handling and Laravel 1
 npm install @dallanj/vue-forms
 ```
 
+Import the default Laravel 13-inspired stylesheet once in your application:
+
+```ts
+import '@dallanj/vue-forms/style.css';
+```
+
 ```vue
 <script setup lang="ts">
 import { FormProvider, Input } from '@dallanj/vue-forms';

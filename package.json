@@ -2,6 +2,19 @@
   "name": "@dallanj/vue-forms",
   "version": "0.1.0",
   "description": "Accessible, framework-neutral Vue form fields with optional Inertia integration",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dallanj/vue-forms.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dallanj/vue-forms/issues"
+  },
+  "homepage": "https://github.com/dallanj/vue-forms#readme",
+  "keywords": ["vue", "forms", "inputs", "validation", "inertia", "laravel"],
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "files": ["dist", "src/scss"],
   "sideEffects": ["**/*.css", "**/*.scss"],
@@ -18,7 +31,11 @@
     "build": "vite build && vue-tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "vue-tsc --noEmit",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "prepublishOnly": "npm run check"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "peerDependencies": { "vue": "^3.5.0" },
   "devDependencies": {
