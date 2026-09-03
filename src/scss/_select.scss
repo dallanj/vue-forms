@@ -1,0 +1,17 @@
+.form-control--select {
+    appearance: auto;
+}
+.dark .form-control--select:hover:not(:disabled) {
+    background: var(
+        --form-control-background-hover-dark,
+        color-mix(in srgb, var(--input, #262626) 50%, transparent)
+    );
+}
+.form-control--multiselect {
+    min-height: 8rem;
+    height: auto;
+    padding-block: 0.5rem;
+}
+.form-select__search {
+    margin-block-end: 0.5rem;
+}

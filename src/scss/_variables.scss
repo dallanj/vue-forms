@@ -1,0 +1,17 @@
+$form-input-height: 2.25rem !default;
+$form-input-radius: 0.375rem !default;
+$form-input-border: hsl(0 0% 89.8%) !default;
+$form-input-border-focus: hsl(0 0% 3.9%) !default;
+$form-input-border-error: hsl(0 84.2% 60.2%) !default;
+$form-label-color: currentColor !default;
+$form-help-color: hsl(0 0% 45.1%) !default;
+$form-error-color: hsl(0 84.2% 60.2%) !default;
+$form-field-gap: 0.5rem !default;
+$form-input-font-size: 1rem !default;
+$form-input-font-size-desktop: 0.875rem !default;
+$form-input-shadow: 0 1px 2px rgb(0 0 0 / 0.05) !default;
+$form-input-transition:
+    color 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease !default;
