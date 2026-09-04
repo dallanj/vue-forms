@@ -10,6 +10,7 @@ interface InertiaFormLike {
 
 const props = withDefaults(
     defineProps<{
+        id?: string;
         form?: InertiaFormLike;
         errors?: ErrorRecord;
         clearErrors?: (...fields: string[]) => void;
@@ -25,6 +26,7 @@ const clear = (name: string): void =>
 
 <template>
     <FormProvider
+        :id="id"
         :errors="resolvedErrors"
         :clear-error-on="clearErrorOn"
         @clear-error="clear"

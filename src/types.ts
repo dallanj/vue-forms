@@ -5,6 +5,7 @@ export type ErrorRecord = Record<string, FieldError>;
 export type ClearErrorTrigger = 'input' | 'change' | 'blur' | 'never';
 
 export interface FormContext {
+    id: Readonly<Ref<string | undefined>>;
     errors: Readonly<Ref<ErrorRecord>>;
     clearErrorTrigger: Readonly<Ref<ClearErrorTrigger>>;
     requestClearError: (

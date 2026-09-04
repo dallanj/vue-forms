@@ -5,6 +5,7 @@ import type { ClearErrorTrigger, ErrorRecord } from './types';
 
 const props = withDefaults(
     defineProps<{
+        id?: string;
         errors?: ErrorRecord;
         clearErrorOn?: ClearErrorTrigger;
     }>(),
@@ -19,9 +20,11 @@ const emit = defineEmits<{
 }>();
 
 const errors = toRef(props, 'errors');
+const id = toRef(props, 'id');
 const clearErrorTrigger = toRef(props, 'clearErrorOn');
 
 provide(formContextKey, {
+    id,
     errors,
     clearErrorTrigger,
     requestClearError(name, trigger) {

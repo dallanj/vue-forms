@@ -16,8 +16,20 @@ interface UseFieldOptions {
 export function useField(options: UseFieldOptions) {
     const context = inject(formContextKey, null);
     const generatedId = `field-${useId().replaceAll(':', '')}`;
-    const inputId = computed(() => toValue(options.id) || generatedId);
     const name = computed(() => toValue(options.name));
+    const inputId = computed(() => {
+        const explicitId = toValue(options.id);
+        if (explicitId) {
+            return explicitId;
+        }
+
+        if (name.value) {
+            const formScope = context?.id.value;
+            return `field-${formScope ? `${formScope}-` : ''}${name.value}`;
+        }
+
+        return generatedId;
+    });
     const explicitError = computed(() => toValue(options.error));
     const errorMessage = computed(() => {
         if (explicitError.value !== undefined) {
