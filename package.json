@@ -1,6 +1,6 @@
 {
     "name": "@dallanj/vue-forms",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Accessible, framework-neutral Vue form fields with optional Inertia integration",
     "license": "MIT",
     "repository": {
