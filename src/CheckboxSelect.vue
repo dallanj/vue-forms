@@ -10,10 +10,15 @@ import type { FieldError, SelectOption } from './types';
 
 defineOptions({ inheritAttrs: false });
 
+/**
+ * A multi-select whose menu rows are checkboxes, for short lists where seeing
+ * every option and its state at once matters more than compact chips. The
+ * trigger summarises the count rather than listing selections.
+ */
 const props = withDefaults(
     defineProps<{
-        modelValue?: unknown;
-        defaultValue?: unknown;
+        modelValue?: unknown[];
+        defaultValue?: unknown[];
         options: Array<SelectOption | string | number>;
         name?: string;
         id?: string;
@@ -24,12 +29,11 @@ const props = withDefaults(
         required?: boolean;
         disabled?: boolean;
         readonly?: boolean;
-        /**
-         * 'auto' shows the filter once the list is long enough to be awkward to
-         * scan. Pass true or false to force it either way.
-         */
+        /** Off by default: this field exists for lists short enough to scan. */
         searchable?: boolean | 'auto';
         searchThreshold?: number;
+        /** Up to this many selections are named in the trigger before it counts. */
+        summaryLimit?: number;
         labelKey?: string;
         valueKey?: string;
         disabledKey?: string;
@@ -42,56 +46,63 @@ const props = withDefaults(
         valueKey: 'value',
         disabledKey: 'disabled',
         noteKey: 'note',
-        searchable: 'auto',
+        searchable: false,
         searchThreshold: 10,
+        summaryLimit: 2,
     },
 );
 
-const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>();
+const emit = defineEmits<{ 'update:modelValue': [value: unknown[]] }>();
 const attrs = useAttrs();
 
 const dropdown = useDropdown({
     count: () => filtered.value.length,
     disabled: () => props.disabled || props.readonly,
-    initialIndex: () =>
-        filtered.value.findIndex((option) => isSelected(option)),
-    onCommit: (index) => select(filtered.value[index]),
+    closeOnCommit: false,
+    onCommit: (index) => toggleOption(filtered.value[index]),
 });
 
-const {
-    optionLabel,
-    optionValue,
-    optionDisabled,
-    optionNote,
-    filtered,
-    findByValue,
-} = useOptions({
-    options: () => props.options,
-    labelKey: () => props.labelKey,
-    valueKey: () => props.valueKey,
-    disabledKey: () => props.disabledKey,
-    noteKey: () => props.noteKey,
-    query: dropdown.query,
-});
+const { optionLabel, optionValue, optionDisabled, optionNote, filtered } =
+    useOptions({
+        options: () => props.options,
+        labelKey: () => props.labelKey,
+        valueKey: () => props.valueKey,
+        disabledKey: () => props.disabledKey,
+        noteKey: () => props.noteKey,
+        query: dropdown.query,
+    });
 
 /**
  * Uncontrolled use is supported: with no `v-model`, `defaultValue` seeds
- * internal state that the field then owns. An explicit `modelValue` always
- * wins, so controlled use is unchanged.
+ * internal state that the field then owns. A native <select multiple> kept
+ * that state in the DOM for free; a button-and-menu field has to hold it.
+ * An explicit `modelValue` always wins, so controlled use is unchanged.
  */
-const internalValue = ref<unknown>(props.defaultValue);
-const currentValue = computed(() =>
+const internalValue = ref<unknown[]>([...(props.defaultValue ?? [])]);
+const selectedValues = computed<unknown[]>(() =>
     props.modelValue === undefined ? internalValue.value : props.modelValue,
 );
 const isSelected = (option: RawOption): boolean =>
-    currentValue.value !== undefined &&
-    currentValue.value !== null &&
-    String(optionValue(option)) === String(currentValue.value);
+    selectedValues.value.some(
+        (value) => String(value) === String(optionValue(option)),
+    );
 
-const selectedLabel = computed(() => {
-    const selected = findByValue(currentValue.value);
+const selectedOptions = computed(() =>
+    props.options.filter((option) => isSelected(option)),
+);
 
-    return selected === undefined ? '' : optionLabel(selected);
+const summary = computed(() => {
+    const selected = selectedOptions.value;
+
+    if (!selected.length) {
+        return '';
+    }
+
+    if (selected.length <= props.summaryLimit) {
+        return selected.map(optionLabel).join(', ');
+    }
+
+    return `${selected.length} selected`;
 });
 
 const showSearch = computed(() =>
@@ -120,13 +131,18 @@ const reportChange = (): void => {
     clearError?.('change');
 };
 
-function select(option: RawOption | undefined): void {
+function toggleOption(option: RawOption | undefined): void {
     if (option === undefined || optionDisabled(option)) {
         return;
     }
 
-    internalValue.value = optionValue(option);
-    emit('update:modelValue', optionValue(option));
+    const value = optionValue(option);
+    const next = isSelected(option)
+        ? selectedValues.value.filter((item) => String(item) !== String(value))
+        : [...selectedValues.value, value];
+
+    internalValue.value = next;
+    emit('update:modelValue', next);
     reportChange();
 }
 </script>
@@ -134,12 +150,12 @@ function select(option: RawOption | undefined): void {
 <template>
     <BaseField v-bind="props" :wrapper-class="attrs.class">
         <template #default="field">
-            <!-- The control is a button, so the value still has to reach a
-                 native form submit. -->
             <input
+                v-for="value in selectedValues"
+                :key="String(value)"
                 type="hidden"
-                :name="name"
-                :value="currentValue == null ? '' : String(currentValue)"
+                :name="name ? `${name}[]` : undefined"
+                :value="String(value)"
             />
             <button
                 :id="field.id"
@@ -155,7 +171,7 @@ function select(option: RawOption | undefined): void {
                 :aria-describedby="field.describedBy"
                 :class="[
                     'form-control form-control--trigger',
-                    { 'form-control--placeholder': !selectedLabel },
+                    { 'form-control--placeholder': !summary },
                     inputClass,
                 ]"
                 @click="
@@ -166,13 +182,14 @@ function select(option: RawOption | undefined): void {
                 @blur="field.requestClearError('blur')"
             >
                 <span class="form-control__value">{{
-                    selectedLabel || placeholder || 'Select an option'
+                    summary || placeholder || 'Select options'
                 }}</span>
                 <span class="form-control__caret" aria-hidden="true"></span>
             </button>
 
             <SelectMenu
                 v-model:query="dropdown.query.value"
+                multiple
                 :open="dropdown.isOpen.value"
                 :style="dropdown.menuStyle.value"
                 :searchable="showSearch"
@@ -189,7 +206,7 @@ function select(option: RawOption | undefined): void {
                     v-for="(option, index) in filtered"
                     :id="`${field.id}-option-${index}`"
                     :key="String(optionValue(option))"
-                    class="form-menu__option"
+                    class="form-menu__option form-menu__option--checkbox"
                     role="option"
                     :aria-selected="isSelected(option)"
                     :aria-disabled="optionDisabled(option) || undefined"
@@ -199,6 +216,14 @@ function select(option: RawOption | undefined): void {
                     @mouseenter="dropdown.activeIndex.value = index"
                     @click="dropdown.commit(index)"
                 >
+                    <!-- Presentational: the row owns the click, and the row
+                         already reports its state through aria-selected. -->
+                    <span
+                        class="form-checkbox"
+                        :data-checked="isSelected(option) || undefined"
+                        aria-hidden="true"
+                        >&#10003;</span
+                    >
                     <span class="form-menu__label">
                         <slot name="option" :option="option">{{
                             optionLabel(option)
@@ -208,12 +233,6 @@ function select(option: RawOption | undefined): void {
                         v-if="optionDisabled(option) && optionNote(option)"
                         class="form-menu__note"
                         >{{ optionNote(option) }}</span
-                    >
-                    <span
-                        v-else-if="isSelected(option)"
-                        class="form-menu__check"
-                        aria-hidden="true"
-                        >&#10003;</span
                     >
                 </li>
             </SelectMenu>

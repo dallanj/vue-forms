@@ -2,6 +2,7 @@ import './style.css';
 
 export { default as BaseField } from './BaseField.vue';
 export { default as Button } from './Button.vue';
+export { default as CheckboxSelect } from './CheckboxSelect.vue';
 export { default as CurrencyInput } from './CurrencyInput.vue';
 export { default as DatePicker } from './DatePicker.vue';
 export { default as FormProvider } from './FormProvider.vue';
@@ -11,6 +12,8 @@ export { default as MultiSelect } from './MultiSelect.vue';
 export { default as Select } from './Select.vue';
 export { default as Textarea } from './Textarea.vue';
 export { normalizeError, normalizeErrors } from './composables/normalizeErrors';
+export { useDropdown } from './composables/useDropdown';
 export { useField } from './composables/useField';
+export { useOptions } from './composables/useOptions';
 export { useFormErrors } from './composables/useFormErrors';
 export type { ClearErrorTrigger, ErrorRecord, FieldError, SelectOption } from './types';
