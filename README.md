@@ -34,6 +34,16 @@ provider a stable `id` to scope them:
 </FormProvider>
 ```
 
+`Chip` is the standalone version of the chips `MultiSelect` shows for its
+selected options — useful for rendering things like applied filters:
+
+```vue
+<Chip label="Species: Dog" removable @remove="clearFilter('species')" />
+```
+
+Its remove affordance is a `<button>`. Inside another button, pass
+`remove-as="span"` (what `MultiSelect` does) to keep the markup valid.
+
 Import `@dallanj/vue-forms/style.css` for the default theme or `@dallanj/vue-forms/scss` to configure Sass variables. Override CSS custom properties at application or component scope.
 
 Inertia integration is optional:

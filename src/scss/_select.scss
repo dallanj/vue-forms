@@ -74,6 +74,11 @@
 }
 .form-chip__remove {
     display: inline-flex;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-family: inherit;
     align-items: center;
     justify-content: center;
     width: 1rem;

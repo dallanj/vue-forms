@@ -3,6 +3,7 @@ import './style.css';
 export { default as BaseField } from './BaseField.vue';
 export { default as Button } from './Button.vue';
 export { default as CheckboxSelect } from './CheckboxSelect.vue';
+export { default as Chip } from './Chip.vue';
 export { default as CurrencyInput } from './CurrencyInput.vue';
 export { default as DatePicker } from './DatePicker.vue';
 export { default as FormProvider } from './FormProvider.vue';

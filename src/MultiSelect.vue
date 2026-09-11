@@ -2,6 +2,7 @@
 import { computed, ref, useAttrs } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import BaseField from './BaseField.vue';
+import Chip from './Chip.vue';
 import SelectMenu from './SelectMenu.vue';
 import { useDropdown } from './composables/useDropdown';
 import { useOptions } from './composables/useOptions';
@@ -189,27 +190,14 @@ function onTriggerKeydown(event: KeyboardEvent): void {
             >
                 <span class="form-chips">
                     <template v-if="selectedOptions.length">
-                        <span
+                        <Chip
                             v-for="option in selectedOptions"
                             :key="String(optionValue(option))"
-                            class="form-chip"
-                        >
-                            <span class="form-chip__label">{{
-                                optionLabel(option)
-                            }}</span>
-                            <!-- A button inside the trigger button is invalid
-                                 markup, so the chip's remove affordance is a
-                                 span with an explicit click handler. -->
-                            <span
-                                v-if="!disabled && !readonly"
-                                class="form-chip__remove"
-                                role="button"
-                                tabindex="-1"
-                                :aria-label="`Remove ${optionLabel(option)}`"
-                                @click.stop="removeAt(optionValue(option))"
-                                >&#215;</span
-                            >
-                        </span>
+                            :label="optionLabel(option)"
+                            :removable="!disabled && !readonly"
+                            remove-as="span"
+                            @remove="removeAt(optionValue(option))"
+                        />
                     </template>
                     <span v-else class="form-control__value">{{
                         placeholder || 'Select options'
