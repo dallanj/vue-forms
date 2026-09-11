@@ -2,7 +2,6 @@
 import { computed, ref, useAttrs } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import BaseField from './BaseField.vue';
-import Chip from './Chip.vue';
 import SelectMenu from './SelectMenu.vue';
 import { useDropdown } from './composables/useDropdown';
 import { useOptions } from './composables/useOptions';
@@ -11,6 +10,11 @@ import type { FieldError, SelectOption } from './types';
 
 defineOptions({ inheritAttrs: false });
 
+/**
+ * A multi-select whose menu rows are checkboxes, for short lists where seeing
+ * every option and its state at once matters more than compact chips. The
+ * trigger summarises the count rather than listing selections.
+ */
 const props = withDefaults(
     defineProps<{
         modelValue?: unknown[];
@@ -25,8 +29,11 @@ const props = withDefaults(
         required?: boolean;
         disabled?: boolean;
         readonly?: boolean;
+        /** Off by default: this field exists for lists short enough to scan. */
         searchable?: boolean | 'auto';
         searchThreshold?: number;
+        /** Up to this many selections are named in the trigger before it counts. */
+        summaryLimit?: number;
         labelKey?: string;
         valueKey?: string;
         disabledKey?: string;
@@ -39,8 +46,9 @@ const props = withDefaults(
         valueKey: 'value',
         disabledKey: 'disabled',
         noteKey: 'note',
-        searchable: 'auto',
+        searchable: false,
         searchThreshold: 10,
+        summaryLimit: 2,
     },
 );
 
@@ -50,7 +58,6 @@ const attrs = useAttrs();
 const dropdown = useDropdown({
     count: () => filtered.value.length,
     disabled: () => props.disabled || props.readonly,
-    /** Multi-select stays open so several rows can be picked in one visit. */
     closeOnCommit: false,
     onCommit: (index) => toggleOption(filtered.value[index]),
 });
@@ -80,10 +87,23 @@ const isSelected = (option: RawOption): boolean =>
         (value) => String(value) === String(optionValue(option)),
     );
 
-/** Chips follow the order of `options` so the row does not reshuffle on click. */
 const selectedOptions = computed(() =>
     props.options.filter((option) => isSelected(option)),
 );
+
+const summary = computed(() => {
+    const selected = selectedOptions.value;
+
+    if (!selected.length) {
+        return '';
+    }
+
+    if (selected.length <= props.summaryLimit) {
+        return selected.map(optionLabel).join(', ');
+    }
+
+    return `${selected.length} selected`;
+});
 
 const showSearch = computed(() =>
     props.searchable === 'auto'
@@ -125,38 +145,11 @@ function toggleOption(option: RawOption | undefined): void {
     emit('update:modelValue', next);
     reportChange();
 }
-
-function removeAt(value: unknown): void {
-    const next = selectedValues.value.filter(
-        (item) => String(item) !== String(value),
-    );
-
-    internalValue.value = next;
-    emit('update:modelValue', next);
-    reportChange();
-}
-
-/** Backspace on the trigger drops the last chip, as in a tag input. */
-function onTriggerKeydown(event: KeyboardEvent): void {
-    if (
-        event.key === 'Backspace' &&
-        !dropdown.isOpen.value &&
-        selectedValues.value.length
-    ) {
-        event.preventDefault();
-        removeAt(selectedValues.value[selectedValues.value.length - 1]);
-        return;
-    }
-
-    dropdown.onTriggerKeydown(event);
-}
 </script>
 
 <template>
     <BaseField v-bind="props" :wrapper-class="attrs.class">
         <template #default="field">
-            <!-- One hidden input per value, so a native submit sends the
-                 array the same way a <select multiple> would. -->
             <input
                 v-for="value in selectedValues"
                 :key="String(value)"
@@ -177,32 +170,20 @@ function onTriggerKeydown(event: KeyboardEvent): void {
                 :aria-invalid="field.invalid"
                 :aria-describedby="field.describedBy"
                 :class="[
-                    'form-control form-control--trigger form-control--chips',
-                    { 'form-control--placeholder': !selectedOptions.length },
+                    'form-control form-control--trigger',
+                    { 'form-control--placeholder': !summary },
                     inputClass,
                 ]"
                 @click="
                     (rememberClearError(field.requestClearError),
                     dropdown.toggle())
                 "
-                @keydown="onTriggerKeydown"
+                @keydown="dropdown.onTriggerKeydown"
                 @blur="field.requestClearError('blur')"
             >
-                <span class="form-chips">
-                    <template v-if="selectedOptions.length">
-                        <Chip
-                            v-for="option in selectedOptions"
-                            :key="String(optionValue(option))"
-                            :label="optionLabel(option)"
-                            :removable="!disabled && !readonly"
-                            remove-as="span"
-                            @remove="removeAt(optionValue(option))"
-                        />
-                    </template>
-                    <span v-else class="form-control__value">{{
-                        placeholder || 'Select options'
-                    }}</span>
-                </span>
+                <span class="form-control__value">{{
+                    summary || placeholder || 'Select options'
+                }}</span>
                 <span class="form-control__caret" aria-hidden="true"></span>
             </button>
 
@@ -225,7 +206,7 @@ function onTriggerKeydown(event: KeyboardEvent): void {
                     v-for="(option, index) in filtered"
                     :id="`${field.id}-option-${index}`"
                     :key="String(optionValue(option))"
-                    class="form-menu__option"
+                    class="form-menu__option form-menu__option--checkbox"
                     role="option"
                     :aria-selected="isSelected(option)"
                     :aria-disabled="optionDisabled(option) || undefined"
@@ -235,6 +216,14 @@ function onTriggerKeydown(event: KeyboardEvent): void {
                     @mouseenter="dropdown.activeIndex.value = index"
                     @click="dropdown.commit(index)"
                 >
+                    <!-- Presentational: the row owns the click, and the row
+                         already reports its state through aria-selected. -->
+                    <span
+                        class="form-checkbox"
+                        :data-checked="isSelected(option) || undefined"
+                        aria-hidden="true"
+                        >&#10003;</span
+                    >
                     <span class="form-menu__label">
                         <slot name="option" :option="option">{{
                             optionLabel(option)
@@ -244,12 +233,6 @@ function onTriggerKeydown(event: KeyboardEvent): void {
                         v-if="optionDisabled(option) && optionNote(option)"
                         class="form-menu__note"
                         >{{ optionNote(option) }}</span
-                    >
-                    <span
-                        v-else-if="isSelected(option)"
-                        class="form-menu__check"
-                        aria-hidden="true"
-                        >&#10003;</span
                     >
                 </li>
             </SelectMenu>
